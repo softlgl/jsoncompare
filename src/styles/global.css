@@ -1,0 +1,137 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 主题切换时让编辑器底色平滑过渡，避免瞬间反色 */
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin {
+  transition: background-color 0.2s ease;
+}
+
+/* 编辑器内的差异标记。Monaco 的 decoration 走全局 CSS，
+   用 CSS 变量与主题联动，配色与 antd 语义色保持一致。
+   用 text-decoration underline 在文字下方画线，
+   避免 outline/border 在行内元素上越界画到行顶。 */
+:root {
+  --json-diff-added-bg: rgba(82, 196, 26, 0.16);
+  --json-diff-added-edge: #52c41a;
+  --json-diff-deleted-bg: rgba(255, 77, 79, 0.16);
+  --json-diff-deleted-edge: #ff4d4f;
+  --json-diff-updated-bg: rgba(250, 173, 20, 0.22);
+  --json-diff-updated-edge: #faad14;
+}
+
+html.app-dark {
+  --json-diff-added-bg: rgba(82, 196, 26, 0.28);
+  --json-diff-added-edge: #49aa19;
+  --json-diff-deleted-bg: rgba(255, 77, 79, 0.28);
+  --json-diff-deleted-edge: #d9363e;
+  --json-diff-updated-bg: rgba(250, 173, 20, 0.3);
+  --json-diff-updated-edge: #d89614;
+}
+
+.json-diff-mark {
+  border-radius: 2px;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* 当前行高亮：Monaco 主题未注册时会给 .current-line 注入红色兜底色，
+   这里用更高优先级规则统一覆盖为浅绿，保证亮/暗主题下点击行都是绿色。 */
+:root {
+  --json-diff-current-line: rgba(82, 196, 26, 0.14);
+}
+
+html.app-dark {
+  --json-diff-current-line: rgba(73, 169, 25, 0.24);
+}
+
+.monaco-editor .view-overlays .current-line,
+.monaco-editor .view-overlays .current-line-both {
+  background-color: var(--json-diff-current-line) !important;
+}
+
+.monaco-editor .margin-view-overlays .current-line-margin,
+.monaco-editor .margin-view-overlays .current-line-margin-both {
+  background-color: var(--json-diff-current-line) !important;
+}
+
+.json-diff-mark--added {
+  background-color: var(--json-diff-added-bg) !important;
+  text-decoration-color: var(--json-diff-added-edge) !important;
+}
+
+.json-diff-mark--deleted {
+  background-color: var(--json-diff-deleted-bg) !important;
+  text-decoration-color: var(--json-diff-deleted-edge) !important;
+}
+
+.json-diff-mark--updated {
+  background-color: var(--json-diff-updated-bg) !important;
+  text-decoration-color: var(--json-diff-updated-edge) !important;
+}
+
+/* 输入框定位到树节点时的闪烁提示 */
+:root {
+  --json-diff-focus-ring: rgba(22, 119, 255, 0.55);
+}
+
+html.app-dark {
+  --json-diff-focus-ring: rgba(22, 104, 220, 0.65);
+}
+
+@keyframes diff-node-flash {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    box-shadow: 0 0 0 3px var(--json-diff-focus-ring);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.diff-node-focused {
+  animation: diff-node-flash 1s ease-out 2;
+}
+
+/* 视图切换的内容淡入，减少跳动感 */
+.diff-view-enter {
+  animation: diff-view-fade 0.18s ease;
+}
+
+@keyframes diff-view-fade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
