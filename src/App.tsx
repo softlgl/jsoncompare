@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ConfigProvider, App as AntdApp, theme as antdTheme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import MainLayout from './components/Layout/MainLayout';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useViewStore } from './store/viewStore';
 
 /**
@@ -30,18 +31,20 @@ function App() {
   const isDark = useViewStore((s) => s.config.theme) === 'dark';
 
   return (
-    <ConfigProvider
-      locale={zhCN}
-      theme={{
-        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-      }}
-    >
-      <AntdApp>
-        <ThemeBridge>
-          <MainLayout />
-        </ThemeBridge>
-      </AntdApp>
-    </ConfigProvider>
+    <ErrorBoundary>
+      <ConfigProvider
+        locale={zhCN}
+        theme={{
+          algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        }}
+      >
+        <AntdApp>
+          <ThemeBridge>
+            <MainLayout />
+          </ThemeBridge>
+        </AntdApp>
+      </ConfigProvider>
+    </ErrorBoundary>
   );
 }
 

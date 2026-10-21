@@ -1,5 +1,5 @@
-import { Layout, Typography, Space, Button, Drawer, Switch, Slider, Select, Divider, theme as antdTheme } from 'antd';
-import { DiffOutlined, SettingOutlined } from '@ant-design/icons';
+import { Layout, Typography, Space, Button, Drawer, Switch, Slider, Select, Divider, Segmented, theme as antdTheme } from 'antd';
+import { DiffOutlined, SettingOutlined, ThunderboltOutlined, SwapOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useViewStore } from '../../store/viewStore';
 import { useRerunDiff } from '../../hooks/useDiffActions';
@@ -11,6 +11,8 @@ const { useToken } = antdTheme;
 const Header: React.FC = () => {
   const config = useViewStore((s) => s.config);
   const setConfig = useViewStore((s) => s.setConfig);
+  const mode = useViewStore((s) => s.mode);
+  const setMode = useViewStore((s) => s.setMode);
   const { token } = useToken();
   const [open, setOpen] = useState(false);
   const rerunDiff = useRerunDiff();
@@ -34,9 +36,19 @@ const Header: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <Space size={10}>
-          <DiffOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 600 }}>JSON Diff Pro</Title>
+        <Space size={16}>
+          <Space size={10}>
+            <DiffOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
+            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>JSON Diff Pro</Title>
+          </Space>
+          <Segmented
+            value={mode}
+            onChange={(v) => setMode(v as 'compare' | 'beautify')}
+            options={[
+              { label: '对比', value: 'compare', icon: <SwapOutlined /> },
+              { label: '美化', value: 'beautify', icon: <ThunderboltOutlined /> },
+            ]}
+          />
         </Space>
 
         <Space>

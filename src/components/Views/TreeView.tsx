@@ -6,7 +6,7 @@ import {
   ArrowRightOutlined,
 } from '@ant-design/icons';
 import type { TreeDataNode, TreeProps } from 'antd';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useJsonStore } from '../../store/jsonStore';
 import { useViewStore } from '../../store/viewStore';
@@ -246,6 +246,12 @@ function Dot({ color }: { color: string }) {
   );
 }
 
+/** rc-tree 实例：虚拟滚动下靠 scrollTo({key}) 定位，而非直接操作 DOM */
+type TreeInstance = { scrollTo: (arg: { key: string }) => void };
+
+/** 单行标题的估算高度（px），rc-virtual-list 用于计算可视窗口 */
+const ROW_HEIGHT = 28;
+
 const TreeView: React.FC = () => {
   const { token } = antdTheme.useToken();
   const { diffResult } = useJsonStore();
@@ -260,6 +266,11 @@ const TreeView: React.FC = () => {
 
   const focusedKey = focusedPath === null ? null : treeKeyOf(focusedPath);
 
+  // 虚拟滚动：测出 Tree 容器的可用高度，只在拿到大小时长挂载可视区节点
+  const treeWrapRef = useRef<HTMLDivElement | null>(null);
+  const treeRef = useRef<TreeInstance | null>(null);
+  const [treeHeight, setTreeHeight] = useState<number>(0);
+
   const allItems = useMemo(() => (diffResult ? flattenDiff(diffResult) : []), [diffResult]);
 
   const filteredItems = useMemo(() => {
@@ -272,6 +283,17 @@ const TreeView: React.FC = () => {
       return true;
     });
   }, [allItems, filters, searchKeyword]);
+
+  useLayoutEffect(() => {
+    const el = treeWrapRef.current;
+    if (!el) return;
+    setTreeHeight(Math.floor(el.clientHeight));
+    const ro = new ResizeObserver(() => {
+      setTreeHeight(Math.floor(el.clientHeight));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [diffResult]);
 
   // 点击节点文字切换展开/折叠（不再只能点箭头）
   const toggleNode = useCallback((key: string) => {
@@ -287,16 +309,19 @@ const TreeView: React.FC = () => {
     [filteredItems, searchKeyword, focusedKey, focusSeq, toggleNode],
   );
 
-  // 定位联动：切换到树视图后等节点渲染完成，把目标节点滚到视野中央
+  // 定位联动：先滚动到目标行（虚拟滚动下靠 key），再对已挂载的 DOM 节点闪烁/居中
   useEffect(() => {
     if (focusedPath === null) return;
+    const key = treeKeyOf(focusedPath);
+    // rc-tree 的 scrollTo 会把虚拟列表中任意（已展开路径上的）行滚进视口
+    treeRef.current?.scrollTo({ key });
     const timer = setTimeout(() => {
       document
-        .getElementById(`diff-node-${treeKeyOf(focusedPath)}`)
+        .getElementById(`diff-node-${key}`)
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 30);
+    }, 60);
     return () => clearTimeout(timer);
-  }, [focusedPath, focusSeq, treeData]);
+  }, [focusedPath, focusSeq, treeData, treeHeight]);
 
   const searchExpanded = useMemo(() => {
     if (!searchKeyword.trim()) return new Set<string>();
@@ -373,18 +398,24 @@ const TreeView: React.FC = () => {
       {filteredItems.length === 0 ? (
         <Empty description="没有符合条件的差异" />
       ) : (
-        <Tree
-          showLine
-          blockNode
-          defaultExpandParent
-          switcherIcon
-          treeData={treeData}
-          expandedKeys={visibleKeys}
-          onExpand={onExpand}
-          selectedKeys={focusedKey !== null ? [focusedKey] : []}
-          onSelect={(keys) => setFocusedPath(keys.length ? String(keys[0]) : null)}
-          style={{ background: token.colorBgContainer, borderRadius: token.borderRadiusLG, padding: 8 }}
-        />
+        <div ref={treeWrapRef} style={{ flex: 1, minHeight: 0 }}>
+          <Tree
+            ref={treeRef as any}
+            showLine
+            blockNode
+            defaultExpandParent
+            switcherIcon
+            treeData={treeData}
+            expandedKeys={visibleKeys}
+            onExpand={onExpand}
+            selectedKeys={focusedKey !== null ? [focusedKey] : []}
+            onSelect={(keys) => setFocusedPath(keys.length ? String(keys[0]) : null)}
+            height={treeHeight > 0 ? treeHeight : undefined}
+            itemHeight={ROW_HEIGHT}
+            virtual={treeHeight > 0}
+            style={{ background: token.colorBgContainer, borderRadius: token.borderRadiusLG, padding: 8, height: '100%' }}
+          />
+        </div>
       )}
     </div>
   );

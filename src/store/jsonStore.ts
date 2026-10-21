@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { DiffResult, AppConfig } from '../types';
 import { calculateDiff, validateJson, makeSourceKey } from '../utils/diffEngine';
+import { safeStorage } from './safeStorage';
 
 export interface RunDiffOutcome {
   ok: boolean;
@@ -43,7 +45,9 @@ interface JsonState {
   runDiff: (config: AppConfig) => RunDiffOutcome;
 }
 
-export const useJsonStore = create<JsonState>((set, get) => ({
+export const useJsonStore = create<JsonState>()(
+  persist(
+    (set, get) => ({
   jsonA: '{\n  "user": {\n    "name": "Alice",\n    "age": 25,\n    "email": "alice@example.com"\n  },\n  "settings": {\n    "theme": "dark"\n  }\n}',
   jsonB: '{\n  "user": {\n    "name": "Alice",\n    "age": 26,\n    "phone": "13800138000"\n  },\n  "settings": {\n    "theme": "light"\n  }\n}',
   parsedA: null,
@@ -120,4 +124,12 @@ export const useJsonStore = create<JsonState>((set, get) => ({
       return { ok: false, error: message };
     }
   },
-}));
+    }),
+    {
+      name: 'jsoncompare-inputs',
+      storage: createJSONStorage(() => safeStorage),
+      // 只持久化原始输入；解析结果/差异是运行时派生态，重建后由自动对比重新生成
+      partialize: (state) => ({ jsonA: state.jsonA, jsonB: state.jsonB }),
+    },
+  ),
+);

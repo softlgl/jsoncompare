@@ -1,11 +1,12 @@
 import { Card, Button, App, Checkbox, Badge, Tooltip, theme as antdTheme } from 'antd';
-import { SwapOutlined, PlayCircleOutlined, ClearOutlined, FilterOutlined, FileTextOutlined } from '@ant-design/icons';
+import { SwapOutlined, PlayCircleOutlined, ClearOutlined, FilterOutlined, FileTextOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Editor from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useJsonStore } from '../../store/jsonStore';
 import { useViewStore } from '../../store/viewStore';
 import { validateJson, formatJson, flattenDiff } from '../../utils/diffEngine';
+import { exportJsonToExcel } from '../../utils/jsonToExcel';
 import { useRerunDiff, useIsStale } from '../../hooks/useDiffActions';
 import { useDiffMarks } from '../../hooks/useDiffMarks';
 import { useApplyMonacoTheme } from '../../hooks/useApplyMonacoTheme';
@@ -47,6 +48,7 @@ const InputSection: React.FC = () => {
   const { message } = App.useApp();
   const { token } = antdTheme.useToken();
   const [ignoreOpen, setIgnoreOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const rerunDiff = useRerunDiff();
   const isStale = useIsStale();
@@ -96,6 +98,21 @@ const InputSection: React.FC = () => {
     swapJsons();
     if (config.autoCompare) return;
     message.info('已交换，点击对比查看结果');
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const count = await exportJsonToExcel([
+        { name: 'JSON A', text: jsonA },
+        { name: 'JSON B', text: jsonB },
+      ]);
+      message.success(`已导出 Excel（${count} 个 sheet）`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '导出失败');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleClear = () => {
@@ -179,6 +196,9 @@ const InputSection: React.FC = () => {
           <Button onClick={() => handleFormat('B')} size="small">格式化 B</Button>
           <Button icon={<FilterOutlined />} onClick={() => setIgnoreOpen(true)} size="small">
             忽略字段
+          </Button>
+          <Button icon={<FileExcelOutlined />} onClick={handleExportExcel} loading={exporting} size="small">
+            导出 Excel
           </Button>
         </div>
 

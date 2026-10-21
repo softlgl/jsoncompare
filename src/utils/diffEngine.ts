@@ -1,4 +1,5 @@
 import { DiffResult, DiffItem, AppConfig, DIFF_AFFECTING_KEYS } from '../types';
+import { formatJsonText } from './jsonFormat';
 
 const defaultConfig: AppConfig = {
   arrayOrderSensitive: false,
@@ -529,13 +530,10 @@ export function validateJson(jsonString: string): { valid: boolean; parsed?: any
 }
 
 /**
- * 格式化 JSON 字符串（美化）
+ * 格式化 JSON 字符串（美化）。
+ * 委托给词法级无损实现：保留数字原始精度（如超过 2^53 的大整数）与注释，
+ * 仅在内容非法时原样返回。非法输入已由调用方（validateJson）先行拦截。
  */
 export function formatJson(jsonString: string): string {
-  try {
-    const parsed = JSON.parse(jsonString);
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return jsonString;
-  }
+  return formatJsonText(jsonString, { insertSpaces: true, tabSize: 2, eol: '\n' });
 }

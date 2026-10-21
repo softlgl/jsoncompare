@@ -1,8 +1,16 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { ViewType, FilterOptions, AppConfig } from '../types';
 import { ancestorKeys } from '../utils/paths';
+import { safeStorage } from './safeStorage';
+
+// 顶层工具模式：对比 / 美化
+export type ToolMode = 'compare' | 'beautify';
 
 interface ViewState {
+  // 顶层模式
+  mode: ToolMode;
+
   // 当前视图
   currentView: ViewType;
   
@@ -23,6 +31,7 @@ interface ViewState {
   config: AppConfig;
   
   // Actions
+  setMode: (mode: ToolMode) => void;
   setCurrentView: (view: ViewType) => void;
   setFilters: (filters: Partial<FilterOptions>) => void;
   setSearchKeyword: (keyword: string) => void;
@@ -58,7 +67,10 @@ const defaultConfig: AppConfig = {
   fontSize: 14,
 };
 
-export const useViewStore = create<ViewState>((set) => ({
+export const useViewStore = create<ViewState>()(
+  persist(
+    (set) => ({
+  mode: 'compare',
   currentView: 'tree',
   filters: defaultFilters,
   searchKeyword: '',
@@ -66,6 +78,8 @@ export const useViewStore = create<ViewState>((set) => ({
   focusedPath: null,
   focusSeq: 0,
   config: defaultConfig,
+
+  setMode: (mode) => set({ mode }),
 
   setCurrentView: (view) => set({ currentView: view }),
   
@@ -109,4 +123,13 @@ export const useViewStore = create<ViewState>((set) => ({
   })),
   
   resetFilters: () => set({ filters: defaultFilters }),
-}));
+    }),
+    {
+      name: 'jsoncompare-view',
+      storage: createJSONStorage(() => safeStorage),
+      // 只持久化偏好（主题/字号/对比规则/上次模式）；
+      // 筛选、展开集、焦点路径是一次性会话态，不跨页面重建
+      partialize: (state) => ({ config: state.config, mode: state.mode }),
+    },
+  ),
+);

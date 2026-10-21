@@ -31,8 +31,10 @@ export default defineConfig({
             id.includes('/@rc-component/') ||
             id.includes('/@babel/runtime/')
           ) return 'antd'
-          // 其余第三方依赖
-          return 'vendor'
+          // 其余依赖交给 rollup 自动分包：仅被动态 import 的库（如 exceljs 及其依赖树）
+          // 会落在异步 chunk，首屏不加载；静态依赖则进入口 chunk。
+          // 注意：不能把它们强制归入某个固定名字的 manualChunk，
+          // 否则会被并入首屏 eager chunk，破坏按需加载。
         },
       },
     },
