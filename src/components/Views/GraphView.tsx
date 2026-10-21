@@ -6,6 +6,12 @@ import { useJsonStore } from '../../store/jsonStore';
 import { flattenDiff } from '../../utils/diffEngine';
 import { MONO_FONT } from '../../utils/theme';
 
+/** hover 高亮交给 CSS，避免逐块 onMouseEnter 引发整棵 treemap 重渲染 */
+const TREEMAP_HOVER_CSS = `
+.tm-rect{transition:fill-opacity .2s;}
+.tm-rect:hover{fill-opacity:.85;}
+`;
+
 interface Category { name: string; total: number; added: number; deleted: number; updated: number; }
 
 function rootSegmentsOf(path: string): string {
@@ -24,7 +30,6 @@ const GraphView: React.FC = () => {
   const { token } = antdTheme.useToken();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [hovered, setHovered] = useState<string | null>(null);
 
   const palette = useMemo(
     () => ({
@@ -98,31 +103,27 @@ const GraphView: React.FC = () => {
         <Spin style={{ margin: 'auto' }} />
       ) : (
         <svg width={size.width} height={size.height} style={{ flex: 1 }}>
+          <style>{TREEMAP_HOVER_CSS}</style>
           {rects.map((r) => {
             const kind = dominantKind(r.data);
             const fill = palette[kind];
-            const active = hovered === r.key;
             return (
-              <g
-                key={r.key}
-                onMouseEnter={() => setHovered(r.key)}
-                onMouseLeave={() => setHovered(null)}
-                style={{ cursor: 'default' }}
-              >
+              <g key={r.key} style={{ cursor: 'default' }}>
                 <title>
                   {`${r.data.name} · 共 ${r.data.total} 处（新增 ${r.data.added} / 删除 ${r.data.deleted} / 修改 ${r.data.updated}）`}
                 </title>
                 <rect
+                  className="tm-rect"
                   x={r.x}
                   y={r.y}
                   width={r.width}
                   height={r.height}
                   fill={fill}
-                  fillOpacity={active ? 0.85 : 0.55}
+                  fillOpacity={0.55}
                   stroke={token.colorBgContainer}
                   strokeWidth={1}
                   rx={3}
-                  style={{ transition: 'fill-opacity .2s, x .3s, y .3s, width .3s, height .3s' }}
+                  style={{ transition: 'x .3s, y .3s, width .3s, height .3s' }}
                 />
                 {r.width > 40 && r.height > 18 && (
                   <text
